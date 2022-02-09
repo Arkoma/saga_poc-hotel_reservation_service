@@ -8,6 +8,8 @@ public class SagaPocHotelReservationServiceApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(SagaPocHotelReservationServiceApplication.class, args);
+
+
 	}
 
 }
