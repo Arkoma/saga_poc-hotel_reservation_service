@@ -87,4 +87,10 @@ class HotelReservationServiceTest {
         verify(hotelReservationRepository, times(1)).findById(anyLong());
         assertEquals(hotelReservation.getId(), actual.getId());
     }
+
+    @Test
+    void getAllReservationsCallsFindAll() {
+        underTest.getAllReservations();
+        verify(hotelReservationRepository, times(1)).findAll();
+    }
 }

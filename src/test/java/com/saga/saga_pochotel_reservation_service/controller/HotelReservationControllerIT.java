@@ -1,6 +1,7 @@
 package com.saga.saga_pochotel_reservation_service.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.saga.saga_pochotel_reservation_service.model.Hotel;
 import com.saga.saga_pochotel_reservation_service.model.HotelReservation;
@@ -25,6 +26,7 @@ import javax.transaction.Transactional;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -195,6 +197,29 @@ class HotelReservationControllerIT {
     void getReservationReturnsNotFoundIfReservationDoesNotExist() throws Exception {
         this.mockMvc.perform(get("/reservation/" + 1L))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void testGetAll() throws Exception {
+        this.makeReservation();
+        this.makeReservation();
+        final MvcResult foundResult = this.mockMvc.perform(get("/reservations"))
+                .andExpectAll(
+                        status().isOk(),
+                        content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
+        String foundResponseJson = foundResult.getResponse().getContentAsString();
+        List<HotelReservation> foundReservations = mapper.readValue(foundResponseJson, new TypeReference<List<HotelReservation>>(){});
+        assertAll(() -> {
+                    assertEquals(StatusEnum.RESERVED ,foundReservations.get(0).getStatus());
+                    assertEquals(this.hotel.getId(), foundReservations.get(0).getHotelId());
+                    assertEquals(this.reservationId, foundReservations.get(0).getReservationId());
+                    assertEquals(this.checkinDate, foundReservations.get(0).getCheckinDate());
+                    assertEquals(this.checkoutDate, foundReservations.get(0).getCheckoutDate());
+                    assertEquals(this.roomNumber, foundReservations.get(0).getRoom());
+                    assertEquals(2, foundReservations.size());
+                }
+        );
     }
 
 }

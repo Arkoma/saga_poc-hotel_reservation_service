@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Objects;
 
 @RestController
@@ -35,5 +36,10 @@ public class HotelReservationController {
     public ResponseEntity<HotelReservation> getReservationById(@PathVariable Long id) {
         HotelReservation reservationById = this.hotelReservationService.getReservationById(id);
         return new ResponseEntity<> (reservationById, Objects.isNull(reservationById) ? HttpStatus.NOT_FOUND : HttpStatus.OK);
+    }
+
+    @GetMapping("/reservations")
+    public ResponseEntity<List<HotelReservation>> getAllReservations() {
+        return new ResponseEntity<>(this.hotelReservationService.getAllReservations(), HttpStatus.OK);
     }
 }

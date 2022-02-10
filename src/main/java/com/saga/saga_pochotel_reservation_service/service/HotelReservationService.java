@@ -9,6 +9,7 @@ import com.saga.saga_pochotel_reservation_service.repository.HotelReservationRep
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
+import java.util.List;
 import java.util.NoSuchElementException;
 
 @Service
@@ -46,5 +47,9 @@ public class HotelReservationService {
 
     public HotelReservation getReservationById(Long id) {
         return this.hotelReservationRepository.findById(id).orElse(null);
+    }
+
+    public List<HotelReservation> getAllReservations() {
+        return this.hotelReservationRepository.findAll();
     }
 }
