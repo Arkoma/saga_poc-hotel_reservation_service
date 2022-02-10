@@ -1,5 +1,6 @@
 package com.saga.saga_pochotel_reservation_service.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.saga.saga_pochotel_reservation_service.model.Hotel;
 import com.saga.saga_pochotel_reservation_service.model.HotelReservation;
@@ -20,12 +21,13 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
+import javax.transaction.Transactional;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -66,6 +68,7 @@ class HotelReservationControllerIT {
         this.mockMvc = MockMvcBuilders.webAppContextSetup(this.webApplicationContext).build();
         hotel = new Hotel();
         hotel.setName("Holiday Inn");
+        this.hotelRepository.deleteAll();
         hotel = this.hotelRepository.save(hotel);
         hotelReservationRequest = HotelReservationRequest.builder()
                 .reservationId(reservationId)
@@ -90,23 +93,18 @@ class HotelReservationControllerIT {
 
     @Test
     void makeReservationEndpointExists() throws Exception {
-        this.mockMvc.perform(post("/reservation").contentType(MediaType.APPLICATION_JSON).content(""))
+        String json = mapper.writeValueAsString(this.hotelReservationRequest);
+        this.mockMvc.perform(post("/reservation").contentType(MediaType.APPLICATION_JSON).content(json))
                 .andExpect(status().isCreated());
     }
 
     @Test
     void makeReservationEndpointReturnsReservation() throws Exception {
-        String json = mapper.writeValueAsString(this.hotelReservationRequest);
-        final MvcResult result = this.mockMvc.perform(post("/reservation").contentType(MediaType.APPLICATION_JSON).content(json))
-                .andExpectAll(
-                        status().isCreated(),
-                        content().contentType(MediaType.APPLICATION_JSON)
-                )
-                .andReturn();
+        final MvcResult result = this.makeReservation();
         String responseJson = result.getResponse().getContentAsString();
         HotelReservation actualResponse = mapper.readValue(responseJson, HotelReservation.class);
         assertAll(() -> {
-            assertEquals(StatusEnum.RESERVED ,actualResponse.getStatus());
+            assertEquals(StatusEnum.RESERVED, actualResponse.getStatus());
             assertEquals(hotel.getId(), actualResponse.getHotelId());
             assertEquals(this.reservationId, actualResponse.getReservationId());
             assertEquals(this.checkinDate, actualResponse.getCheckinDate());
@@ -116,15 +114,21 @@ class HotelReservationControllerIT {
         );
     }
 
-    @Test
-    void makeReservationEndpointSavesReservation() throws Exception {
+    private MvcResult makeReservation() throws Exception {
         String json = mapper.writeValueAsString(this.hotelReservationRequest);
-        MvcResult mvcResult = this.mockMvc.perform(post("/reservation").contentType(MediaType.APPLICATION_JSON).content(json))
+        return this.mockMvc.perform(post("/reservation").contentType(MediaType.APPLICATION_JSON).content(json))
                 .andExpectAll(
                         status().isCreated(),
-                        content().contentType(MediaType.APPLICATION_JSON))
+                        content().contentType(MediaType.APPLICATION_JSON)
+                )
                 .andReturn();
-        String responseJson = mvcResult.getResponse().getContentAsString();
+    }
+
+    @Test
+    @Transactional
+    void makeReservationEndpointSavesReservation() throws Exception {
+        final MvcResult result = this.makeReservation();
+        String responseJson = result.getResponse().getContentAsString();
         HotelReservation actualResponse = mapper.readValue(responseJson, HotelReservation.class);
         HotelReservation actualEntity = this.hotelReservationRepository.getById(actualResponse.getId());
         assertAll(() -> {
@@ -136,6 +140,61 @@ class HotelReservationControllerIT {
             assertEquals(this.roomNumber, actualEntity.getRoom());
                 }
         );
+    }
+
+    @Test
+    void cancelReservationEndpointExists() throws Exception {
+        final MvcResult result = this.makeReservation();
+        String responseJson = result.getResponse().getContentAsString();
+        HotelReservation reservation = mapper.readValue(responseJson, HotelReservation.class);
+        Long id = reservation.getId();
+        this.mockMvc.perform(delete("/reservation/" + id))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @Transactional
+    void cancelReservationEndpointRemovesReservation() throws Exception {
+        final MvcResult result = this.makeReservation();
+        String responseJson = result.getResponse().getContentAsString();
+        HotelReservation reservation = mapper.readValue(responseJson, HotelReservation.class);
+        Long id = reservation.getId();
+        HotelReservation reservationFromDb = this.hotelReservationRepository.getById(id);
+        assertEquals(id, reservationFromDb.getId());
+        this.mockMvc.perform(delete("/reservation/" + id))
+                .andExpect(status().isNoContent());
+        reservationFromDb = this.hotelReservationRepository.findById(id).orElse(null);
+        assertNull(reservationFromDb);
+    }
+    
+    @Test
+    void getReservationEndpointExists() throws Exception {
+        final MvcResult result = this.makeReservation();
+        String responseJson = result.getResponse().getContentAsString();
+        HotelReservation reservation = mapper.readValue(responseJson, HotelReservation.class);
+        Long id = reservation.getId();
+        final MvcResult foundResult = this.mockMvc.perform(get("/reservation/" + id))
+            .andExpectAll(
+                    status().isOk(),
+                    content().contentType(MediaType.APPLICATION_JSON))
+            .andReturn();
+        String foundResponseJson = foundResult.getResponse().getContentAsString();
+        HotelReservation foundReservation = mapper.readValue(foundResponseJson, HotelReservation.class);
+        assertAll(() -> {
+                    assertEquals(StatusEnum.RESERVED ,foundReservation.getStatus());
+                    assertEquals(this.hotel.getId(), foundReservation.getHotelId());
+                    assertEquals(this.reservationId, foundReservation.getReservationId());
+                    assertEquals(this.checkinDate, foundReservation.getCheckinDate());
+                    assertEquals(this.checkoutDate, foundReservation.getCheckoutDate());
+                    assertEquals(this.roomNumber, foundReservation.getRoom());
+                }
+        );
+    }
+
+    @Test
+    void getReservationReturnsNotFoundIfReservationDoesNotExist() throws Exception {
+        this.mockMvc.perform(get("/reservation/" + 1L))
+                .andExpect(status().isNotFound());
     }
 
 }

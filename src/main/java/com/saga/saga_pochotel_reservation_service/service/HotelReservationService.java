@@ -8,6 +8,7 @@ import com.saga.saga_pochotel_reservation_service.repository.HotelRepository;
 import com.saga.saga_pochotel_reservation_service.repository.HotelReservationRepository;
 import org.springframework.stereotype.Service;
 
+import javax.transaction.Transactional;
 import java.util.NoSuchElementException;
 
 @Service
@@ -37,5 +38,13 @@ public class HotelReservationService {
             hotelReservation = hotelReservationRepository.save(hotelReservation);
         }
         return hotelReservation;
+    }
+
+    public void cancelReservation(Long id) {
+        this.hotelReservationRepository.deleteById(id);
+    }
+
+    public HotelReservation getReservationById(Long id) {
+        return this.hotelReservationRepository.findById(id).orElse(null);
     }
 }

@@ -5,9 +5,9 @@ import com.saga.saga_pochotel_reservation_service.model.HotelReservationRequest;
 import com.saga.saga_pochotel_reservation_service.service.HotelReservationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Objects;
 
 @RestController
 public class HotelReservationController {
@@ -23,5 +23,17 @@ public class HotelReservationController {
     public ResponseEntity<HotelReservation> makeReservation(@RequestBody HotelReservationRequest request) {
         HotelReservation hotelReservation = this.hotelReservationService.makeReservation(request);
         return new ResponseEntity<>(hotelReservation, HttpStatus.CREATED);
+    }
+
+    @DeleteMapping("/reservation/{id}")
+    public ResponseEntity cancelReservation(@PathVariable Long id) {
+        this.hotelReservationService.cancelReservation(id);
+        return new ResponseEntity(HttpStatus.NO_CONTENT);
+    }
+
+    @GetMapping("/reservation/{id}")
+    public ResponseEntity<HotelReservation> getReservationById(@PathVariable Long id) {
+        HotelReservation reservationById = this.hotelReservationService.getReservationById(id);
+        return new ResponseEntity<> (reservationById, Objects.isNull(reservationById) ? HttpStatus.NOT_FOUND : HttpStatus.OK);
     }
 }

@@ -6,11 +6,13 @@ import com.saga.saga_pochotel_reservation_service.model.HotelReservationRequest;
 import com.saga.saga_pochotel_reservation_service.model.StatusEnum;
 import com.saga.saga_pochotel_reservation_service.repository.HotelRepository;
 import com.saga.saga_pochotel_reservation_service.repository.HotelReservationRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.web.bind.annotation.PathVariable;
 
 
 import java.text.ParseException;
@@ -33,17 +35,25 @@ class HotelReservationServiceTest {
     @Mock
     private HotelReservationRepository hotelReservationRepository;
 
+    private HotelReservation hotelReservation;
+
+    private Long hotelReservationId;
+
+    @BeforeEach
+    void setup() {
+        hotelReservationId = 3L;
+        hotelReservation = new HotelReservation();
+        hotelReservation.setId(hotelReservationId);
+    }
+
     @Test
     void makeReservationSavesHotelPassedIn() throws ParseException {
         String hotelName = "Holiday Inn";
         Long hotelId = 1L;
         Long reservationId = 2L;
-        Long hotelReservationId = 3L;
         Hotel hotel = new Hotel();
         hotel.setId(hotelId);
         hotel.setName(hotelName);
-        HotelReservation hotelReservation = new HotelReservation();
-        hotelReservation.setId(hotelReservationId);
         when(hotelRepository.findByName(anyString())).thenReturn(Optional.of(hotel));
         when (hotelReservationRepository.save(any(HotelReservation.class))).thenReturn(hotelReservation);
         final int roomNumber = 666;
@@ -61,7 +71,20 @@ class HotelReservationServiceTest {
         verify(hotelReservationRepository, times(1)).save(any(HotelReservation.class));
         assertAll(() -> {
             assertEquals(hotelReservationId, actual.getId());
-            assertEquals(StatusEnum.RESERVED, actual.getStatus());
         });
+    }
+
+    @Test
+    void cancelReservationDeletesEntity() {
+        underTest.cancelReservation(1L);
+        verify(hotelReservationRepository, times(1)).deleteById(anyLong());
+    }
+
+    @Test
+    void testGetReservationByIdCallsFindById() {
+        when(hotelReservationRepository.findById(anyLong())).thenReturn(Optional.of(hotelReservation));
+        HotelReservation actual = underTest.getReservationById(1L);
+        verify(hotelReservationRepository, times(1)).findById(anyLong());
+        assertEquals(hotelReservation.getId(), actual.getId());
     }
 }
