@@ -30,10 +30,11 @@ public class HotelReservationService {
         hotelReservation.setCheckoutDate(request.getCheckoutDate());
         hotelReservation.setRoom(request.getRoom());
         try {
-            hotelReservation = hotelReservationRepository.save(hotelReservation);
             hotelReservation.setStatus(StatusEnum.RESERVED);
+            hotelReservation = hotelReservationRepository.save(hotelReservation);
         } catch (Exception e) {
             hotelReservation.setStatus(StatusEnum.CANCELLED);
+            hotelReservation = hotelReservationRepository.save(hotelReservation);
         }
         return hotelReservation;
     }
