@@ -1,12 +1,17 @@
 package com.saga.saga_pochotel_reservation_service.model;
 
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 
 import javax.persistence.*;
 
 import java.util.Date;
 
-@Data
+@Setter
+@Getter
+@ToString
 @Entity
 public class HotelReservation {
     @Id
