@@ -68,13 +68,14 @@ class HotelReservationControllerIT {
     @BeforeEach
     void setup() {
         this.mockMvc = MockMvcBuilders.webAppContextSetup(this.webApplicationContext).build();
+        final String hotelName = "Holiday Inn";
         hotel = new Hotel();
-        hotel.setName("Holiday Inn");
+        hotel.setName(hotelName);
         this.hotelRepository.deleteAll();
         hotel = this.hotelRepository.save(hotel);
         hotelReservationRequest = HotelReservationRequest.builder()
                 .reservationId(reservationId)
-                .hotel(hotel)
+                .hotelName(hotelName)
                 .room(roomNumber)
                 .checkinDate(checkinDate)
                 .checkoutDate(checkoutDate)
@@ -102,7 +103,7 @@ class HotelReservationControllerIT {
 
     @Test
     void makeReservationEndpointReturnsReservation() throws Exception {
-        final MvcResult result = this.makeReservation();
+        final MvcResult result = this.makeReservation(this.hotelReservationRequest);
         String responseJson = result.getResponse().getContentAsString();
         HotelReservation actualResponse = mapper.readValue(responseJson, HotelReservation.class);
         assertAll(() -> {
@@ -116,8 +117,8 @@ class HotelReservationControllerIT {
         );
     }
 
-    private MvcResult makeReservation() throws Exception {
-        String json = mapper.writeValueAsString(this.hotelReservationRequest);
+    private MvcResult makeReservation(HotelReservationRequest request) throws Exception {
+        String json = mapper.writeValueAsString(request);
         return this.mockMvc.perform(post("/reservation").contentType(MediaType.APPLICATION_JSON).content(json))
                 .andExpectAll(
                         status().isCreated(),
@@ -129,7 +130,7 @@ class HotelReservationControllerIT {
     @Test
     @Transactional
     void makeReservationEndpointSavesReservation() throws Exception {
-        final MvcResult result = this.makeReservation();
+        final MvcResult result = this.makeReservation(this.hotelReservationRequest);
         String responseJson = result.getResponse().getContentAsString();
         HotelReservation actualResponse = mapper.readValue(responseJson, HotelReservation.class);
         HotelReservation actualEntity = this.hotelReservationRepository.getById(actualResponse.getId());
@@ -146,7 +147,7 @@ class HotelReservationControllerIT {
 
     @Test
     void cancelReservationEndpointExists() throws Exception {
-        final MvcResult result = this.makeReservation();
+        final MvcResult result = this.makeReservation(this.hotelReservationRequest);
         String responseJson = result.getResponse().getContentAsString();
         HotelReservation reservation = mapper.readValue(responseJson, HotelReservation.class);
         Long id = reservation.getId();
@@ -157,7 +158,7 @@ class HotelReservationControllerIT {
     @Test
     @Transactional
     void cancelReservationEndpointRemovesReservation() throws Exception {
-        final MvcResult result = this.makeReservation();
+        final MvcResult result = this.makeReservation(this.hotelReservationRequest);
         String responseJson = result.getResponse().getContentAsString();
         HotelReservation reservation = mapper.readValue(responseJson, HotelReservation.class);
         Long id = reservation.getId();
@@ -171,7 +172,7 @@ class HotelReservationControllerIT {
     
     @Test
     void getReservationEndpointExists() throws Exception {
-        final MvcResult result = this.makeReservation();
+        final MvcResult result = this.makeReservation(this.hotelReservationRequest);
         String responseJson = result.getResponse().getContentAsString();
         HotelReservation reservation = mapper.readValue(responseJson, HotelReservation.class);
         Long id = reservation.getId();
@@ -201,15 +202,18 @@ class HotelReservationControllerIT {
 
     @Test
     void testGetAll() throws Exception {
-        this.makeReservation();
-        this.makeReservation();
+        this.makeReservation(this.hotelReservationRequest);
+        HotelReservationRequest newHotelReservationRequest = this.hotelReservationRequest;
+        newHotelReservationRequest.setReservationId(2L);
+        this.makeReservation(newHotelReservationRequest);
         final MvcResult foundResult = this.mockMvc.perform(get("/reservations"))
                 .andExpectAll(
                         status().isOk(),
                         content().contentType(MediaType.APPLICATION_JSON))
                 .andReturn();
         String foundResponseJson = foundResult.getResponse().getContentAsString();
-        List<HotelReservation> foundReservations = mapper.readValue(foundResponseJson, new TypeReference<List<HotelReservation>>(){});
+        List<HotelReservation> foundReservations = mapper.readValue(foundResponseJson, new TypeReference<>() {
+        });
         assertAll(() -> {
                     assertEquals(StatusEnum.RESERVED ,foundReservations.get(0).getStatus());
                     assertEquals(this.hotel.getId(), foundReservations.get(0).getHotelId());

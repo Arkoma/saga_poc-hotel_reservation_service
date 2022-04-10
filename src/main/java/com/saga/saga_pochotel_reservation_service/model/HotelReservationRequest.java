@@ -8,7 +8,7 @@ import java.util.Date;
 @Data
 @Builder
 public class HotelReservationRequest {
-    private Hotel hotel;
+    private String hotelName;
     private Long reservationId;
     private int room;
     private Date checkinDate;
