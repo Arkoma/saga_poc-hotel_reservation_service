@@ -32,6 +32,7 @@ public class HotelReservationService {
         HotelReservation hotelReservation = new HotelReservation();
         final long hotelId = hotel.isPresent() ? hotel.get().getId() : 0;
         hotelReservation.setHotelId(hotelId);
+        hotelReservation.setHotelName(request.getHotelName());
         hotelReservation.setReservationId(request.getReservationId());
         hotelReservation.setCheckinDate(request.getCheckinDate());
         hotelReservation.setCheckoutDate(request.getCheckoutDate());

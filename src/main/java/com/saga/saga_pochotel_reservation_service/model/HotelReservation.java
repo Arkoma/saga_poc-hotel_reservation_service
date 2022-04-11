@@ -19,6 +19,7 @@ public class HotelReservation {
     private Long reservationId;
     private StatusEnum status;
     private Long hotelId;
+    private String hotelName;
     private int room;
     private Date checkinDate;
     private Date checkoutDate;
